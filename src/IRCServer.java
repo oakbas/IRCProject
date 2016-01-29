@@ -5,40 +5,41 @@ public class IRCServer {
 	
     private ServerSocket serverSocket;
     private int port;
+    PrintWriter out;
     
     public IRCServer (int port) {
         this.port = port;
-    }
-    
-    public Socket listen() {
-		ServerSocket serverSoc = null;
-		Socket clientSoc = null;
     	try {
-    		serverSoc = new ServerSocket(port);
+    		serverSocket = new ServerSocket(port);
     	} catch(IOException e) {
     		System.out.println("Open Socket Error");
     	}
+    }
+    
+    public void listen() {
     	
-		System.out.println("Waiting for the client");
-		
-		try {
-			clientSoc = serverSoc.accept();
-		} catch (IOException e) { 
-	         System.out.println("Accept Socket Error"); 
-	         System.exit(1); 
-        }
-		
-		/* Send Welcome Message */
-		try {
-			PrintWriter out = new PrintWriter(clientSoc.getOutputStream(), true);
-			BufferedReader in = new BufferedReader(new InputStreamReader(clientSoc.getInputStream()));
-			out.println("Thank you for connecting");
-			System.out.println ("Connection successful with client " + clientSoc.getLocalAddress() );
-			System.out.println ("Waiting for input from " + clientSoc.getLocalAddress());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return clientSoc;
+    	while (true) {
+    		Socket clientSoc = null;
+        	    		
+    		try {
+    			clientSoc = serverSocket.accept();
+    		} catch (IOException e) { 
+    	         System.out.println("Accept Socket Error"); 
+    	         System.exit(1); 
+            }
+    		
+    		/* Send Welcome Message */
+    		try {
+    			out = new PrintWriter(clientSoc.getOutputStream(), true);
+    			out.println("Thank you for connecting");
+    			System.out.println ("Connection successful with client " + clientSoc.getLocalAddress() );
+    			System.out.println ("Waiting for input from " + clientSoc.getLocalAddress());
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		}
+    		
+    		new Thread(new ClientConnected(clientSoc, out)).start();
+    	}		
     }
     
     public void incomingParser (String data, Socket cSoc) {
@@ -62,20 +63,8 @@ public class IRCServer {
 	public static void main(String[] args) {
 		int serverPort = 12345;
 		IRCServer ircServer = new IRCServer(serverPort);
-		Socket cSoc = ircServer.listen();
-		
-		while (true) {
-			try {
-				BufferedReader in = new BufferedReader(new InputStreamReader(cSoc.getInputStream()));
-				String incomingData = "";
 
-				while ((incomingData = in.readLine()) != null) {
-					System.out.println(incomingData);
-					ircServer.incomingParser(incomingData, cSoc);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		System.out.println("Waiting for the client");
+		ircServer.listen();
 	}
 }
